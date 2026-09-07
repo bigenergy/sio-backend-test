@@ -1,4 +1,30 @@
-### Calculate Price
+# Products seeded by the fixtures: 1 = Iphone (100 EUR), 2 = Наушники (20 EUR), 3 = Чехол (10 EUR).
+# Coupons seeded by the fixtures: P6, P10, P100 (percentage) and D15, D5 (fixed amount).
+#
+# Amounts are returned in euros; the breakdown shows how the total was reached.
+
+### Price of an Iphone for a Greek customer: 100 EUR + 24% VAT = 124 EUR
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "GR123456789"
+}
+
+### The same Iphone with a 6% coupon: (100 - 6%) + 24% VAT = 116.56 EUR
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "GR123456789",
+  "couponCode": "P6"
+}
+
+### A fixed coupon for a German customer: (100 - 15) + 19% VAT = 101.15 EUR
 POST http://127.0.0.1:8337/calculate-price
 Accept: application/json
 Content-Type: application/json
@@ -9,7 +35,103 @@ Content-Type: application/json
   "couponCode": "D15"
 }
 
-### Execute Purchase
+### Headphones for an Italian customer: 20 EUR + 22% VAT = 24.40 EUR
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 2,
+  "taxNumber": "IT12345678900"
+}
+
+### A case for a French customer, whose tax number carries two letters: 10 EUR + 20% VAT = 12 EUR
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 3,
+  "taxNumber": "FRAB123456789"
+}
+
+### A 100% coupon brings the price to zero rather than below it
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "DE123456789",
+  "couponCode": "P100"
+}
+
+### 422 — the country prefix belongs to no supported country
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "XX123456789"
+}
+
+### 422 — a German tax number one digit short
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "DE12345678"
+}
+
+### 422 — a coupon the seller never issued
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "DE123456789",
+  "couponCode": "P50"
+}
+
+### 422 — no such product
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 999,
+  "taxNumber": "DE123456789"
+}
+
+### 422 — every missing field is reported at once
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{}
+
+### 422 — the product id is not a number
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": "abc",
+  "taxNumber": "DE123456789"
+}
+
+### 400 — the body could not be parsed at all
+POST http://127.0.0.1:8337/calculate-price
+Accept: application/json
+Content-Type: application/json
+
+not json
+
+### Purchase through Paypal: (100 - 15) + 22% VAT = 103.70 EUR
 POST http://127.0.0.1:8337/purchase
 Accept: application/json
 Content-Type: application/json
@@ -19,4 +141,47 @@ Content-Type: application/json
   "taxNumber": "IT12345678900",
   "couponCode": "D15",
   "paymentProcessor": "paypal"
+}
+
+### Purchase through Stripe: 124 EUR clears the 100 EUR Stripe insists on
+POST http://127.0.0.1:8337/purchase
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "GR123456789",
+  "paymentProcessor": "stripe"
+}
+
+### 422 — Stripe refuses 11.90 EUR, and the refusal is reported as a payment error
+POST http://127.0.0.1:8337/purchase
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 3,
+  "taxNumber": "DE123456789",
+  "paymentProcessor": "stripe"
+}
+
+### 422 — unknown processor, answered with the list of the ones that exist
+POST http://127.0.0.1:8337/purchase
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "DE123456789",
+  "paymentProcessor": "bitcoin"
+}
+
+### 422 — a purchase without a processor to charge
+POST http://127.0.0.1:8337/purchase
+Accept: application/json
+Content-Type: application/json
+
+{
+  "product": 1,
+  "taxNumber": "DE123456789"
 }
