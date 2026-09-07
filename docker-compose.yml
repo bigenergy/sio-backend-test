@@ -9,9 +9,9 @@ services:
             - "8337:8337"
         volumes:
             - .:/app:rw
+            - app_var:/app/var
         environment:
             - APP_ENV=dev
-            - DATABASE_URL=postgresql://app:app@database:5432/app?serverVersion=16&charset=utf8
         depends_on:
             database:
                 condition: service_healthy
@@ -34,3 +34,4 @@ services:
 
 volumes:
     database_data:
+    app_var:

@@ -11,6 +11,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Setup php app user
 ARG USER_ID=1000
 RUN adduser -u ${USER_ID} -D -H app
+
+# Symfony writes cache/logs to var/, which docker-compose.yml keeps in a named volume
+# instead of the bind mount. Create it here so the volume inherits app's ownership
+# rather than being provisioned root-owned on first start.
+RUN mkdir -p /app/var && chown -R app:app /app
+
 USER app
 
 COPY --chown=app . /app
