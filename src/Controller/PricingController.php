@@ -40,7 +40,7 @@ final class PricingController extends AbstractController
         $product = $this->product($request->product);
         $breakdown = $this->quote($product, $request->taxNumber, $request->couponCode);
 
-        return $this->json($this->describe($product, $breakdown));
+        return $this->respond($this->describe($product, $breakdown));
     }
 
     #[Route('/purchase', name: 'purchase', methods: ['POST'])]
@@ -53,10 +53,21 @@ final class PricingController extends AbstractController
         // by App\EventListener\ApiExceptionListener.
         $this->paymentProcessors->get($request->paymentProcessor)->pay($breakdown->totalInCents());
 
-        return $this->json($this->describe($product, $breakdown) + [
+        return $this->respond($this->describe($product, $breakdown) + [
             'status' => 'paid',
             'paymentProcessor' => $request->paymentProcessor,
         ]);
+    }
+
+    /**
+     * Amounts keep their fractional part even when they land on a whole euro,
+     * so a client always reads a price in the same shape: 124.0, not 124.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function respond(array $payload): JsonResponse
+    {
+        return $this->json($payload, context: ['json_encode_options' => \JSON_PRESERVE_ZERO_FRACTION]);
     }
 
     /**

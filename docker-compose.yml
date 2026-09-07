@@ -10,8 +10,6 @@ services:
         volumes:
             - .:/app:rw
             - app_var:/app/var
-        environment:
-            - APP_ENV=dev
         depends_on:
             database:
                 condition: service_healthy
