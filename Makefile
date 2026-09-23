@@ -4,7 +4,7 @@ DC = @USER_ID=$(USER_ID) docker compose
 DC_RUN = ${DC} run --rm sio_test
 DC_EXEC = ${DC} exec sio_test
 
-.PHONY: help init build up stop start down restart console install db db-test test
+.PHONY: help init build up stop start down restart console install db db-test test lint fix
 .DEFAULT_GOAL := help
 
 help: ## This help.
@@ -50,3 +50,10 @@ db-test: ## Prepare the database the functional tests read from.
 
 test: db-test ## Run the test suite.
 	${DC_EXEC} vendor/bin/phpunit
+
+lint: ## Run static analysis and check the code style.
+	${DC_EXEC} vendor/bin/phpstan analyse --no-progress
+	${DC_EXEC} env PHP_CS_FIXER_IGNORE_ENV=1 vendor/bin/php-cs-fixer fix --dry-run --diff
+
+fix: ## Apply the code style fixes.
+	${DC_EXEC} env PHP_CS_FIXER_IGNORE_ENV=1 vendor/bin/php-cs-fixer fix
