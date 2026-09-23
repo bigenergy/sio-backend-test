@@ -11,9 +11,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * End-to-end coverage of both endpoints against the seeded database, so the
  * routing, the payload mapping, the validation and the error shape are all
- * exercised the way a client would meet them.
+ * exercised the way a client meets them.
  *
- * Requires the test database to be prepared: `make test` does that first.
+ * Requires the test database to be prepared; `make test` does that first.
  */
 final class PricingControllerTest extends WebTestCase
 {
@@ -24,6 +24,9 @@ final class PricingControllerTest extends WebTestCase
         $this->client = static::createClient();
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     #[DataProvider('pricedRequests')]
     public function testCalculatesThePrice(array $payload, float $expectedPrice): void
     {
@@ -53,6 +56,11 @@ final class PricingControllerTest extends WebTestCase
             101.15,
         ];
 
+        yield 'Iphone for a German customer with a 7.5% coupon' => [
+            ['product' => 1, 'taxNumber' => 'DE123456789', 'couponCode' => 'P7H'],
+            110.08,
+        ];
+
         yield 'headphones for an Italian customer' => [
             ['product' => 2, 'taxNumber' => 'IT12345678900'],
             24.4,
@@ -80,12 +88,15 @@ final class PricingControllerTest extends WebTestCase
             'breakdown' => [
                 'subtotal' => 100.0,
                 'discount' => 6.0,
-                'taxRate' => 24,
+                'taxRate' => 24.0,
                 'tax' => 22.56,
             ],
         ], $this->responseBody());
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     #[DataProvider('rejectedRequests')]
     public function testRejectsInvalidInput(array $payload, string $expectedField): void
     {
@@ -102,12 +113,25 @@ final class PricingControllerTest extends WebTestCase
     {
         yield 'unknown product' => [['product' => 999, 'taxNumber' => 'DE123456789'], 'product'];
         yield 'product that is not a number' => [['product' => 'abc', 'taxNumber' => 'DE123456789'], 'product'];
+        yield 'product id of zero' => [['product' => 0, 'taxNumber' => 'DE123456789'], 'product'];
         yield 'unsupported country' => [['product' => 1, 'taxNumber' => 'XX123456789'], 'taxNumber'];
         yield 'tax number of the wrong length' => [['product' => 1, 'taxNumber' => 'DE12345678'], 'taxNumber'];
         yield 'coupon the seller never issued' => [
             ['product' => 1, 'taxNumber' => 'DE123456789', 'couponCode' => 'P50'],
             'couponCode',
         ];
+    }
+
+    /**
+     * A non-positive id used to produce two violations on one field, because
+     * every constraint ran. They are sequenced now, so it produces one.
+     */
+    public function testReportsANonPositiveProductIdOnlyOnce(): void
+    {
+        $this->client->jsonRequest('POST', '/calculate-price', ['product' => 0, 'taxNumber' => 'DE123456789']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(1, $this->responseBody()['errors']);
     }
 
     public function testReportsEveryMissingFieldAtOnce(): void

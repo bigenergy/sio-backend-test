@@ -22,11 +22,11 @@ final class ExistingProductValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint, ExistingProduct::class);
         }
 
-        if ($value === null || $value === '') {
+        if (null === $value || '' === $value) {
             return;
         }
 
-        if (!\is_int($value) || $this->products->find($value) !== null) {
+        if (!\is_int($value) || null !== $this->products->find($value)) {
             return;
         }
 

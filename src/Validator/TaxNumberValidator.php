@@ -24,7 +24,7 @@ final class TaxNumberValidator extends ConstraintValidator
         }
 
         // Emptiness is NotBlank's job, not this constraint's.
-        if ($value === null || $value === '') {
+        if (null === $value || '' === $value) {
             return;
         }
 
@@ -32,7 +32,7 @@ final class TaxNumberValidator extends ConstraintValidator
             throw new UnexpectedValueException($value, 'string');
         }
 
-        if (Country::tryFromTaxNumber($value) !== null) {
+        if (null !== Country::tryFromTaxNumber($value)) {
             return;
         }
 

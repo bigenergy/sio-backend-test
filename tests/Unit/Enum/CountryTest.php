@@ -10,23 +10,6 @@ use PHPUnit\Framework\TestCase;
 
 final class CountryTest extends TestCase
 {
-    #[DataProvider('taxRates')]
-    public function testTaxRate(Country $country, int $expectedPercent): void
-    {
-        self::assertSame($expectedPercent, $country->taxRatePercent());
-    }
-
-    /**
-     * @return iterable<string, array{Country, int}>
-     */
-    public static function taxRates(): iterable
-    {
-        yield 'Germany' => [Country::Germany, 19];
-        yield 'Italy' => [Country::Italy, 22];
-        yield 'France' => [Country::France, 20];
-        yield 'Greece' => [Country::Greece, 24];
-    }
-
     #[DataProvider('validTaxNumbers')]
     public function testResolvesCountryFromTaxNumber(string $taxNumber, Country $expected): void
     {

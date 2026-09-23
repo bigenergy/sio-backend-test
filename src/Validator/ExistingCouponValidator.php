@@ -27,11 +27,11 @@ final class ExistingCouponValidator extends ConstraintValidator
         }
 
         // The coupon is optional; an absent one simply means no discount.
-        if ($value === null || $value === '') {
+        if (null === $value || '' === $value) {
             return;
         }
 
-        if (!\is_string($value) || $this->coupons->findOneByCode($value) !== null) {
+        if (!\is_string($value) || null !== $this->coupons->findOneByCode($value)) {
             return;
         }
 

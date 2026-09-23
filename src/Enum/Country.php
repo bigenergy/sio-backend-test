@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Enum;
 
 /**
- * Countries the shop bills, together with the VAT rate applied on top of the
- * discounted price and the tax number layout that identifies each of them.
+ * Countries the shop bills, identified by the layout of their tax number.
  *
- * The rates are part of the task's fixed specification, so they live in code
- * rather than in the database. Turning them into an entity would be the
- * natural next step if they ever had to be editable per country.
+ * Only the format lives here: it is a parsing rule, fixed by the country. The
+ * rate charged is data and lives in the tax_rate table, so it can change
+ * without a release.
  */
 enum Country: string
 {
@@ -20,25 +19,10 @@ enum Country: string
     case Greece = 'GR';
 
     /**
-     * VAT rate in whole percent.
-     */
-    public function taxRatePercent(): int
-    {
-        return match ($this) {
-            self::Germany => 19,
-            self::Italy => 22,
-            self::France => 20,
-            self::Greece => 24,
-        };
-    }
-
-    /**
-     * Tax number layout: a two-letter country prefix followed by a
-     * country-specific number of digits. France additionally carries a
-     * two-letter block between the prefix and the digits.
+     * A two-letter country prefix followed by a country-specific number of
+     * digits. France additionally carries a two-letter block in between.
      *
-     * Letters are required to be uppercase, matching how EU VAT identifiers
-     * are written; accepting lowercase would mean normalising the input first.
+     * Letters must be uppercase, matching how EU VAT identifiers are written.
      */
     public function taxNumberPattern(): string
     {
@@ -51,14 +35,14 @@ enum Country: string
     }
 
     /**
-     * Resolves the country a tax number belongs to, or null when the number
-     * matches no known country's format.
+     * The country a tax number belongs to, or null when it matches no known
+     * country's format.
      */
     public static function tryFromTaxNumber(string $taxNumber): ?self
     {
         $country = self::tryFrom(substr($taxNumber, 0, 2));
 
-        if ($country === null || preg_match($country->taxNumberPattern(), $taxNumber) !== 1) {
+        if (null === $country || 1 !== preg_match($country->taxNumberPattern(), $taxNumber)) {
             return null;
         }
 

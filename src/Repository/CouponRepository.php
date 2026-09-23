@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Coupon;
+use App\Exception\CouponNotFound;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -21,5 +22,13 @@ class CouponRepository extends ServiceEntityRepository
     public function findOneByCode(string $code): ?Coupon
     {
         return $this->findOneBy(['code' => $code]);
+    }
+
+    /**
+     * @throws CouponNotFound
+     */
+    public function getByCode(string $code): Coupon
+    {
+        return $this->findOneByCode($code) ?? throw CouponNotFound::withCode($code);
     }
 }

@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Validator;
 
-use App\Payment\PaymentProcessorRegistry;
+use App\Service\Payment\PaymentProcessorRegistry;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
  * Checks the requested processor against the registry rather than a hardcoded
- * list, so registering a new processor widens what this constraint accepts —
- * and what its error message advertises — on its own.
+ * list, so registering a new one widens what this constraint accepts.
  */
 final class SupportedPaymentProcessorValidator extends ConstraintValidator
 {
@@ -27,7 +26,7 @@ final class SupportedPaymentProcessorValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint, SupportedPaymentProcessor::class);
         }
 
-        if ($value === null || $value === '') {
+        if (null === $value || '' === $value) {
             return;
         }
 

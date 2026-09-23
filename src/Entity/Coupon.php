@@ -6,8 +6,16 @@ namespace App\Entity;
 
 use App\Enum\CouponType;
 use App\Repository\CouponRepository;
+use App\ValueObject\Money;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * A discount the seller issued.
+ *
+ * Each type has its own column rather than sharing one whose meaning depends
+ * on the type, which also lets a percentage carry decimals.
+ */
 #[ORM\Entity(repositoryClass: CouponRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_coupon_code', columns: ['code'])]
 class Coupon
@@ -17,23 +25,38 @@ class Coupon
     #[ORM\Column]
     private ?int $id = null;
 
-    public function __construct(
-        #[ORM\Column(length: 32)]
-        private string $code,
+    #[ORM\Column(length: 32)]
+    private string $code;
 
-        #[ORM\Column(length: 16, enumType: CouponType::class)]
-        private CouponType $type,
+    #[ORM\Column(length: 16, enumType: CouponType::class)]
+    private CouponType $type;
 
-        /**
-         * Cents for a fixed coupon, whole percent for a percentage one.
-         *
-         * A single column is the simplest thing that covers both types. Splitting
-         * it into two nullable columns, or into one subclass per type, would only
-         * start paying off once coupons grew more rules than "how much off".
-         */
-        #[ORM\Column]
-        private int $value,
-    ) {
+    #[ORM\Column(nullable: true)]
+    private ?int $amountInCents = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
+    private ?string $percentage = null;
+
+    private function __construct(string $code, CouponType $type)
+    {
+        $this->code = $code;
+        $this->type = $type;
+    }
+
+    public static function fixed(string $code, Money $amount): self
+    {
+        $coupon = new self($code, CouponType::Fixed);
+        $coupon->amountInCents = $amount->cents();
+
+        return $coupon;
+    }
+
+    public static function percentage(string $code, float $percent): self
+    {
+        $coupon = new self($code, CouponType::Percentage);
+        $coupon->percentage = (string) $percent;
+
+        return $coupon;
     }
 
     public function getId(): ?int
@@ -51,24 +74,23 @@ class Coupon
         return $this->type;
     }
 
-    public function getValue(): int
-    {
-        return $this->value;
-    }
-
     /**
-     * Discount this coupon grants on the given price, in cents.
+     * What this coupon takes off the given price.
      *
-     * Capped at the price itself, so a 100% (or oversized fixed) coupon brings
-     * the product down to zero rather than into negative territory.
+     * Capped at the price itself, so a 100% or oversized coupon brings the
+     * product down to zero rather than into negative territory.
      */
-    public function discountFor(int $priceInCents): int
+    public function discountFor(Money $price): Money
     {
         $discount = match ($this->type) {
-            CouponType::Fixed => $this->value,
-            CouponType::Percentage => (int) round($priceInCents * $this->value / 100),
+            CouponType::Fixed => Money::fromCents(
+                $this->amountInCents ?? throw new \LogicException('A fixed coupon carries no amount.'),
+            ),
+            CouponType::Percentage => $price->percentage(
+                (float) ($this->percentage ?? throw new \LogicException('A percentage coupon carries no percentage.')),
+            ),
         };
 
-        return min($discount, $priceInCents);
+        return $discount->atMost($price);
     }
 }

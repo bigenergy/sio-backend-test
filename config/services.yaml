@@ -17,13 +17,15 @@ services:
         resource: '../src/'
         exclude:
             - '../src/DependencyInjection/'
+            - '../src/Dto/'
             - '../src/Entity/'
             - '../src/Enum/'
-            - '../src/Dto/'
+            - '../src/Exception/'
+            - '../src/ValueObject/'
             - '../src/Kernel.php'
 
-    # The vendor processors live outside src/, so they are registered by hand for
-    # the adapters in App\Payment to autowire. They are used as-is; the task
-    # forbids modifying them.
+    # The vendor processors live outside src/, so they are registered by hand
+    # for the adapters in App\Service\Payment to autowire. They are used as-is;
+    # the task forbids modifying them.
     Systemeio\TestForCandidates\PaymentProcessor\PaypalPaymentProcessor: ~
     Systemeio\TestForCandidates\PaymentProcessor\StripePaymentProcessor: ~

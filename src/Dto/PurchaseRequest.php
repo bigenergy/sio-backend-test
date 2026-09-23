@@ -11,31 +11,51 @@ use App\Validator\TaxNumber;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Body of POST /purchase — the price request plus the processor to charge
+ * Body of POST /purchase: the price request plus the processor to charge
  * through.
  *
- * Kept separate from CalculatePriceRequest rather than extending it: the two
- * endpoints are free to diverge, and repeating three fields costs less than
- * the coupling would.
+ * Kept separate from CalculatePriceRequest rather than extending it, so the
+ * two endpoints are free to diverge.
  */
 final readonly class PurchaseRequest
 {
     public function __construct(
-        #[Assert\NotNull(message: 'A product is required.')]
-        #[Assert\Positive(message: 'A product id must be a positive integer.')]
-        #[ExistingProduct]
+        #[Assert\Sequentially([
+            new Assert\NotNull(message: 'A product is required.'),
+            new Assert\Positive(message: 'A product id must be a positive integer.'),
+            new ExistingProduct(),
+        ])]
         public ?int $product = null,
 
-        #[Assert\NotBlank(message: 'A tax number is required.')]
-        #[TaxNumber]
+        #[Assert\Sequentially([
+            new Assert\NotBlank(message: 'A tax number is required.'),
+            new TaxNumber(),
+        ])]
         public ?string $taxNumber = null,
 
         #[ExistingCoupon]
         public ?string $couponCode = null,
 
-        #[Assert\NotBlank(message: 'A payment processor is required.')]
-        #[SupportedPaymentProcessor]
+        #[Assert\Sequentially([
+            new Assert\NotBlank(message: 'A payment processor is required.'),
+            new SupportedPaymentProcessor(),
+        ])]
         public ?string $paymentProcessor = null,
     ) {
+    }
+
+    public function getProductId(): int
+    {
+        return $this->product ?? throw new \LogicException('The request was read before it was validated.');
+    }
+
+    public function getTaxNumber(): string
+    {
+        return $this->taxNumber ?? throw new \LogicException('The request was read before it was validated.');
+    }
+
+    public function getPaymentProcessor(): string
+    {
+        return $this->paymentProcessor ?? throw new \LogicException('The request was read before it was validated.');
     }
 }

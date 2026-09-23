@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Payment;
+namespace App\Tests\Unit\Service\Payment;
 
-use App\Payment\PaymentFailedException;
-use App\Payment\StripePaymentAdapter;
+use App\Exception\PaymentFailed;
+use App\Service\Payment\StripePaymentAdapter;
+use App\ValueObject\Money;
 use PHPUnit\Framework\TestCase;
 use Systemeio\TestForCandidates\PaymentProcessor\StripePaymentProcessor;
 
@@ -23,24 +24,19 @@ final class StripePaymentAdapterTest extends TestCase
         $this->adapter = new StripePaymentAdapter(new StripePaymentProcessor());
     }
 
-    public function testIsSelectedByName(): void
-    {
-        self::assertSame('stripe', $this->adapter->getName());
-    }
-
     public function testChargesAnAmountOnTheThreshold(): void
     {
         $this->expectNotToPerformAssertions();
 
         // 10000 cents is exactly the 100 EUR Stripe still accepts.
-        $this->adapter->pay(10000);
+        $this->adapter->pay(Money::fromCents(10000));
     }
 
     public function testTranslatesARefusalIntoAPaymentFailure(): void
     {
-        $this->expectException(PaymentFailedException::class);
+        $this->expectException(PaymentFailed::class);
 
         // One cent below the threshold, which only fails if cents became euros.
-        $this->adapter->pay(9999);
+        $this->adapter->pay(Money::fromCents(9999));
     }
 }
