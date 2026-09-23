@@ -8,8 +8,7 @@ DC_EXEC = ${DC} exec sio_test
 .DEFAULT_GOAL := help
 
 help: ## This help.
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "[36m%-30s[0m %s
-", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 init: down build install up db success-message console ## Initialize environment
 
@@ -36,6 +35,10 @@ console: ## Login in console.
 install: ## Install dependencies without running the whole application.
 	${DC_RUN} composer install
 
+success-message:
+	@echo "You can now access the application at http://localhost:8337"
+	@echo "Good luck! 🚀"
+
 db: ## Create the schema and load the products and coupons.
 	${DC_EXEC} php bin/console doctrine:migrations:migrate --no-interaction
 	${DC_EXEC} php bin/console doctrine:fixtures:load --no-interaction
@@ -47,7 +50,3 @@ db-test: ## Prepare the database the functional tests read from.
 
 test: db-test ## Run the test suite.
 	${DC_EXEC} vendor/bin/phpunit
-
-success-message:
-	@echo "You can now access the application at http://localhost:8337"
-	@echo "Good luck! 🚀"
